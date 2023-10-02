@@ -1,0 +1,15 @@
+package routers
+
+import (
+    "github.com/gofiber/fiber/v2"
+    "{{.}}/controllers"
+    "{{.}}/middleware"
+)
+
+func SetupRoutes(app *fiber.App, sampleController controllers.SampleController) {
+
+
+    sampleRouter := app.Group("/sample", middleware.Config())
+    sampleRouter.Get("/", sampleController.FindAll)
+    sampleRouter.Get("/:id", sampleController.FindByID)
+}

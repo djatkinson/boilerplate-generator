@@ -1,0 +1,41 @@
+package main
+
+import (
+	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.elastic.co/apm/module/apmfiber/v2"
+	"log"
+	"{{.}}/config"
+	controllers_impl "{{.}}/controllers/impl"
+	"{{.}}/database"
+	"{{.}}/middleware"
+	repository_impl "{{.}}/repositories/impl"
+	"{{.}}/routers"
+	service_impl "{{.}}/services/impl"
+	"{{.}}/utils/metric"
+)
+
+func main() {
+	config.LoadConfig()
+	db := database.Init()
+
+	metrics := metric.SetupPrometheus()
+	prometheus.MustRegister(metrics)
+
+	sampleRepository := repository_impl.NewSampleRepository(db)
+
+	sampleService := service_impl.NewSampleService(sampleRepository)
+
+	sampleController := controllers_impl.NewSampleController(sampleService)
+
+	app := config.InitFiberApp()
+	prometheus := fiberprometheus.New("sample-service")
+	prometheus.RegisterAt(app, "/metrics")
+	app.Use(prometheus.Middleware)
+	app.Use(apmfiber.Middleware())
+	app.Use(middleware.Config())
+
+	routers.SetupRoutes(app, sampleController)
+
+	log.Fatal(app.Listen(":5100"))
+}
